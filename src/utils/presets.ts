@@ -306,6 +306,11 @@ export class PresetManager {
   }
 
   private loadCustomPresets(): void {
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return;
+    }
+
     try {
       const stored = localStorage.getItem('music-visualizer-custom-presets');
       if (stored) {
@@ -321,6 +326,11 @@ export class PresetManager {
   }
 
   private saveCustomPresetsToStorage(): void {
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return;
+    }
+
     try {
       localStorage.setItem(
         'music-visualizer-custom-presets',

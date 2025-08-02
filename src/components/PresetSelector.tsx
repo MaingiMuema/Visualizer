@@ -43,15 +43,22 @@ export default function PresetSelector({
     tags: '',
   });
 
-  const presetManager = PresetManager.getInstance();
+  const [presetManager, setPresetManager] = useState<PresetManager | null>(null);
+
+  // Initialize PresetManager only on client side
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setPresetManager(PresetManager.getInstance());
+    }
+  }, []);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && presetManager) {
       const allPresets = presetManager.getAllPresets();
       setPresets(allPresets);
       setFilteredPresets(allPresets);
     }
-  }, [isOpen]);
+  }, [isOpen, presetManager]);
 
   useEffect(() => {
     let filtered = presets;
@@ -97,13 +104,15 @@ export default function PresetSelector({
     setShowSaveDialog(false);
     
     // Refresh presets
-    const allPresets = presetManager.getAllPresets();
-    setPresets(allPresets);
-    setFilteredPresets(allPresets);
+    if (presetManager) {
+      const allPresets = presetManager.getAllPresets();
+      setPresets(allPresets);
+      setFilteredPresets(allPresets);
+    }
   };
 
   const handleDeletePreset = (presetId: string) => {
-    if (presetManager.deleteCustomPreset(presetId)) {
+    if (presetManager && presetManager.deleteCustomPreset(presetId)) {
       const allPresets = presetManager.getAllPresets();
       setPresets(allPresets);
       setFilteredPresets(allPresets);
@@ -111,6 +120,8 @@ export default function PresetSelector({
   };
 
   const handleExportPreset = (presetId: string) => {
+    if (!presetManager) return;
+
     const exported = presetManager.exportPreset(presetId);
     if (exported) {
       const blob = new Blob([exported], { type: 'application/json' });
@@ -127,13 +138,13 @@ export default function PresetSelector({
 
   const handleImportPreset = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || !presetManager) return;
 
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
       const importedId = presetManager.importPreset(content);
-      
+
       if (importedId) {
         const allPresets = presetManager.getAllPresets();
         setPresets(allPresets);
@@ -143,12 +154,26 @@ export default function PresetSelector({
       }
     };
     reader.readAsText(file);
-    
+
     // Reset input
     event.target.value = '';
   };
 
   if (!isOpen) return null;
+
+  // Show loading state while presetManager is initializing
+  if (!presetManager) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-gray-900 dark:text-white">Loading presets...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
